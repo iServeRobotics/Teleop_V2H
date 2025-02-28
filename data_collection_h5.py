@@ -131,7 +131,8 @@ async def task():
 	h_comp_matrix = np.vstack((np.hstack((np.array(r_matrix), np.zeros(3).reshape(3,1))), np.array([0, 0, 0, 1]).reshape(1,4)))
 	print(h_comp_matrix)
 
-	ep_list = []
+	action_list = []    # teleop pose
+	robot_state_list = []  # robot end pose
 	img0_list = []
 	img1_list = []
 	img_time_stamp_list = []
@@ -177,7 +178,9 @@ async def task():
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 			end_pose = piper.GetArmEndPoseMsgs().end_pose
 			print(f"x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
-			ep_list.append([time.time(), end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
+			obs_act_ts = time.time()
+			action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
+			robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 			# action = [end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis]
 			# data_dict['/observations/qpos'].append()
 			# data_dict['/observations/qvel'].append()
@@ -203,15 +206,16 @@ async def task():
 				counter = 0
 
 		except KeyboardInterrupt:
+			output_file_name = 'data_' + str(time.time()) + '_iserve.h5'
 			print("Process interrupted by user.") 
 			print("Data Collection Ended, saving to file...")
-			with h5py.File('data_iserve.h5', 'w') as hf:
+			with h5py.File(output_file_name, 'w') as hf:
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
-				hf.create_dataset("actions",  data=np.array(ep_list))
+				hf.create_dataset("actions",  data=np.array(action_list))
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("cam1", data=np.array(img1_list))
-				# hf.create_dataset("observations", data=np.array(img_list))
+				obs.create_dataset("robot_state", data=np.array(robot_state_list))
 				hf.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
 				# for name, array in data_dict.items():
 				# 	hf[name][...] = array
