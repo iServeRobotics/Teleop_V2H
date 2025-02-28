@@ -177,8 +177,10 @@ async def task():
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 			end_pose = piper.GetArmEndPoseMsgs().end_pose
-			print(f"x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
+			# print(f"x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
 			obs_act_ts = time.time()
+			tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(euler_angles_degrees)))
+			print(f"teleop raw data: {tele_raw_data}")
 			action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
 			robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 			# action = [end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis]
@@ -216,7 +218,7 @@ async def task():
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("cam1", data=np.array(img1_list))
 				obs.create_dataset("robot_state", data=np.array(robot_state_list))
-				hf.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
+				obs.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
 				# for name, array in data_dict.items():
 				# 	hf[name][...] = array
 				print(f"Total {time.time() - start_time} seconds of data saved.")
