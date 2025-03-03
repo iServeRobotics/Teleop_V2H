@@ -49,7 +49,7 @@ def enable_fun(piper:C_PiperInterface):
 
 def get_pose_cmd(pos, euler_angles_degrees):
 	# offset = [-0.3, 0.5, 0.7]
-	offset = [-0.4, 0, 0.5]
+	offset = [-0.2, 0, 0.5]
 	factor = 1000
 	X = round((offset[0]+pos[0,0])*600*factor)
 	Y = round((offset[1]+pos[0,1])*600*factor)
@@ -68,7 +68,7 @@ def get_pose_cmd(pos, euler_angles_degrees):
 	# RX -= 90*factor
 	# RY += 180*factor
 	# RX += 180*factor
-	RY += 90*factor
+	# RY += 90*factor
 	# RZ -= 90*factor
 	RX = 0
 	# RY = 180*factor
@@ -151,9 +151,10 @@ async def task():
 			
 			euler_angles_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
 			#print(new_p.reshape(1,3))
-			euler_angles_degrees[2] -= yaw_offset
-			euler_angles_degrees[2] -= 90
+			euler_angles_degrees[2] += yaw_offset
+			euler_angles_degrees[1] += 90
 			print(euler_angles_degrees)
+			print(f"yaw_offset : {yaw_offset}")
 			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), euler_angles_degrees)
 			# print(X,Y,Z,RX,RY,RZ)
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
