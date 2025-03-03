@@ -64,10 +64,15 @@ def get_pose_cmd(pos, euler_angles_degrees):
 	Y = min(500*factor, Y)
 	Z = max(150*factor, Z)
 	Z = min(700*factor, Z)
-	RX -= 90*factor
-	RY += 180*factor
-	
-	#RZ = 0
+
+	# RX -= 90*factor
+	# RY += 180*factor
+	# RX += 180*factor
+	RY += 90*factor
+	# RZ -= 90*factor
+	RX = 0
+	# RY = 180*factor
+	# RZ = 0
 	# X = 200*factor
 	# Y = 0
 	# Z = 200*factor
@@ -85,7 +90,7 @@ async def task():
 				0.0, \
 				300.0, \
 				0, \
-				150.0, \
+				90.0, \
 				0, \
 				0]
 	X = round(position[0]*factor)
@@ -98,7 +103,7 @@ async def task():
 	piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 	time.sleep(2.0)
 
-	MPUReader = AsyncCeptionController("/dev/ttyUSB1") # this is the port for IMU teleoperation
+	MPUReader = AsyncCeptionController("/dev/ttyUSB0") # this is the port for IMU teleoperation
 	print("connecting ...")
 	await MPUReader.connect()
 	print("connected.")
@@ -146,13 +151,15 @@ async def task():
 			
 			euler_angles_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
 			#print(new_p.reshape(1,3))
-			#print(euler_angles_degrees)
+			euler_angles_degrees[2] -= yaw_offset
+			euler_angles_degrees[2] -= 90
+			print(euler_angles_degrees)
 			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), euler_angles_degrees)
-			print(X,Y,Z,RX,RY,RZ)
+			# print(X,Y,Z,RX,RY,RZ)
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 			end_pose_msg = piper.GetArmEndPoseMsgs()
-			print(end_pose_msg)
+			# print(end_pose_msg)
 			time.sleep(0.01)
 			
 		except KeyboardInterrupt: 
