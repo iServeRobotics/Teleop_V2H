@@ -176,6 +176,7 @@ async def task():
 
 			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), adjusted_end_pose_orientation_degrees)
 			print(X,Y,Z,RX,RY,RZ)
+
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 			end_pose = piper.GetArmEndPoseMsgs().end_pose
@@ -183,6 +184,7 @@ async def task():
 			obs_act_ts = time.time()
 			tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(adjusted_end_pose_orientation_degrees)))
 			print(f"teleop raw data: {tele_raw_data}")
+
 			action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
 			robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 			# action = [end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis]
