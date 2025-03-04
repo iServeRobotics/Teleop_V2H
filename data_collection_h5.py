@@ -202,6 +202,14 @@ async def task():
 				if not ret0 or not ret1:
 					print("no image...")
 
+			    if ret0:
+			        cv2.imshow('Camera 0', frame0)
+			    if ret1:
+			        cv2.imshow('Camera 1', frame1)
+
+			    # Break the loop if 'q' is pressed
+			    if cv2.waitKey(1) & 0xFF == ord('q'):
+			        break
 				# data_dict[f'/observations/images/cam0'].append(frame0)
 				# data_dict[f'/observations/images/cam1'].append(frame1)
 				img0_list.append(frame0)
