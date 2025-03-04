@@ -151,7 +151,7 @@ async def task():
 			
 			euler_angles_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
 			#print(new_p.reshape(1,3))
-			euler_angles_degrees[2] += yaw_offset
+			# euler_angles_degrees[2] += yaw_offset
 			euler_angles_degrees[1] += 90
 			print(euler_angles_degrees)
 			print(f"yaw_offset : {yaw_offset}")
