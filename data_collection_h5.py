@@ -213,8 +213,8 @@ async def task():
 				# 	break
 				# data_dict[f'/observations/images/cam0'].append(frame0)
 				# data_dict[f'/observations/images/cam1'].append(frame1)
-				img0_list.append(frame0)
-				img1_list.append(frame1)
+				img0_list.append(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
+				img1_list.append(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
 				action_list.append([X,Y,Z,RX,RY,RZ])
 				robot_state_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 
