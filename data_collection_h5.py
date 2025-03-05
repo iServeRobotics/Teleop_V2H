@@ -50,12 +50,12 @@ def enable_fun(piper:C_PiperInterface):
 		exit(0)
 
 def get_pose_cmd(pos, euler_angles_degrees):
-	offset = [-0.3, 0, 0.5]
+	offset = [-0.2, 0, 0.5]
 	factor = 1000
 	X = round((offset[0]+pos[0,0])*600*factor)
 	Y = round((offset[1]+pos[0,1])*600*factor)
 	Z = round((offset[2]+pos[0,2])*600*factor)
-	RX = -round(euler_angles_degrees[0]*factor)
+	RX = round(euler_angles_degrees[0]*factor)
 	RY = round(euler_angles_degrees[1]*factor)
 	RZ = round(euler_angles_degrees[2]*factor)
 
@@ -65,14 +65,6 @@ def get_pose_cmd(pos, euler_angles_degrees):
 	Y = min(500*factor, Y)
 	Z = max(150*factor, Z)
 	Z = min(700*factor, Z)
-
-	# RX -= 90*factor
-	# RY += 180*factor
-	
-	RZ = 0
-	# X = 200*factor
-	# Y = 0
-	# Z = 200*factor
 
 	return X, Y, Z, RX, RY, RZ
 
@@ -209,14 +201,14 @@ async def task():
 				if not ret0 or not ret1:
 					print("no image...")
 
-			    if ret0:
-			        cv2.imshow('Camera 0', frame0)
-			    if ret1:
-			        cv2.imshow('Camera 1', frame1)
+				# if ret0:
+				# 	cv2.imshow('Camera 0', frame0)
+				# if ret1:
+				# 	cv2.imshow('Camera 1', frame1)
 
-			    # Break the loop if 'q' is pressed
-			    if cv2.waitKey(1) & 0xFF == ord('q'):
-			        break
+				# # Break the loop if 'q' is pressed
+				# if cv2.waitKey(1) & 0xFF == ord('q'):
+				# 	break
 				# data_dict[f'/observations/images/cam0'].append(frame0)
 				# data_dict[f'/observations/images/cam1'].append(frame1)
 				img0_list.append(frame0)
