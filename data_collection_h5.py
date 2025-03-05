@@ -146,7 +146,8 @@ async def task():
 
 	start_time = time.time()
 
-	while True: 
+	while True:
+		time.sleep(base_sleep_period)
 		try: # Retrieve end position and posture 
 			pos, rot = await sirius.getEndPos() # 获取位置和旋转矩阵 
 			p = np.array([pos[0,0], pos[0,1], pos[0,2]]).reshape(3,1)
@@ -185,8 +186,8 @@ async def task():
 			tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(adjusted_end_pose_orientation_degrees)))
 			print(f"teleop raw data: {tele_raw_data}")
 
-			action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
-			robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
+			# action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
+			# robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 			# action = [end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis]
 			# data_dict['/observations/qpos'].append()
 			# data_dict['/observations/qvel'].append()
@@ -194,7 +195,6 @@ async def task():
 			# for cam_name in camera_names:
 				# data_dict[f'/observations/images/{cam_name}'].append(ts.observation['images'][cam_name])
 
-			time.sleep(base_sleep_period)
 			counter += 1
 			if counter == camera_tic_factor:
 				# get an camera image
@@ -215,6 +215,8 @@ async def task():
 				# data_dict[f'/observations/images/cam1'].append(frame1)
 				img0_list.append(frame0)
 				img1_list.append(frame1)
+				action_list.append([X,Y,Z,RX,RY,RZ])
+				robot_state_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 
 				img_time_stamp_list.append(time.time())
 				counter = 0
