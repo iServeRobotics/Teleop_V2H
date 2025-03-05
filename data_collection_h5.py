@@ -169,13 +169,20 @@ async def task():
 			h_end = np.matmul(h_end_comp_matrix, h_matrix)
 
 			
-			euler_angles_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
-			#print(new_p.reshape(1,3))
-			#print(euler_angles_degrees)
-			euler_angles_degrees[1] += 90
-			euler_angles_degrees[2] += yaw_offset
+			# euler_angles_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
+			# euler_angles_degrees[1] += 90
+			# euler_angles_degrees[2] += yaw_offset
+			euler_angles_extrinsic_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
 
-			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), euler_angles_degrees)
+			print(f"xyz: {new_p.reshape(1,3)} - euler angle extrinsic: {euler_angles_extrinsic_degrees}")
+			# euler_angles_extrinsic_degrees[0] = 0
+			adjusted_end_pose_orientation_degrees = [-90, 0, -90] # dummy value
+			adjusted_end_pose_orientation_degrees[0] = -euler_angles_extrinsic_degrees[1] - 90
+			adjusted_end_pose_orientation_degrees[1] = euler_angles_extrinsic_degrees[0] + 90
+			adjusted_end_pose_orientation_degrees[2] = euler_angles_extrinsic_degrees[2] - 90
+			print(f"adjusted : {adjusted_end_pose_orientation_degrees}")
+
+			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), adjusted_end_pose_orientation_degrees)
 			print(X,Y,Z,RX,RY,RZ)
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
