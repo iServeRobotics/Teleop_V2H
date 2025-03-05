@@ -141,7 +141,7 @@ async def task():
 			# euler_angles_extrinsic_degrees[0] = 0
 			adjusted_end_pose_orientation_degrees = [-90, 0, -90] # dummy value
 			adjusted_end_pose_orientation_degrees[0] = -euler_angles_extrinsic_degrees[1] - 90
-			adjusted_end_pose_orientation_degrees[1] = euler_angles_extrinsic_degrees[0]
+			adjusted_end_pose_orientation_degrees[1] = euler_angles_extrinsic_degrees[0] + 90
 			adjusted_end_pose_orientation_degrees[2] = euler_angles_extrinsic_degrees[2] - 90
 			print(f"adjusted : {adjusted_end_pose_orientation_degrees}")
 
