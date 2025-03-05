@@ -181,7 +181,7 @@ async def task():
 			end_pose = piper.GetArmEndPoseMsgs().end_pose
 			# print(f"x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
 			obs_act_ts = time.time()
-			tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(euler_angles_degrees)))
+			tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(adjusted_end_pose_orientation_degrees)))
 			print(f"teleop raw data: {tele_raw_data}")
 			action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
 			robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
