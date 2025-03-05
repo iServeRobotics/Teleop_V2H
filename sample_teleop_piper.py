@@ -123,15 +123,13 @@ async def task():
 
 	while True: 
 		try: # Retrieve end position and posture 
-			pos, rot = await sirius.getEndPos() # 获取位置和旋转矩阵 
+			pos, rot = await sirius.getEndPos() 
 			p = np.array([pos[0,0], pos[0,1], pos[0,2]]).reshape(3,1)
 			t = -np.matmul(rot, p)
 			h_matrix = np.vstack((np.hstack((rot, t)), np.array([0,0,0,1]).reshape(1,4)))
 			h_new = np.matmul(h_matrix, h_comp_matrix)
 			new_p = -np.matmul(h_new[0:3,0:3].T, h_new[0:3, 3])
 			
-			# comp_euler_angles = R.from_matrix(h_new[0:3,0:3]).as_euler('xyz', degrees=True)
-			# print(f"compensated euler angle: {comp_euler_angles}")
 			# compensate for the end effector heading
 			r_end = R.from_euler('z', -yaw_offset, degrees=True).as_matrix()
 			h_end_comp_matrix = np.vstack((np.hstack((np.array(r_end), np.zeros(3).reshape(3,1))), np.array([0, 0, 0, 1]).reshape(1,4)))
@@ -139,14 +137,15 @@ async def task():
 			
 			euler_angles_extrinsic_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
 
-			euler_angles_extrinsic_degrees[0] += 90
-			euler_angles_extrinsic_degrees[1] += 90
 			print(f"xyz: {new_p.reshape(1,3)} - euler angle extrinsic: {euler_angles_extrinsic_degrees}")
-			euler_angles_extrinsic_degrees[0] = 0
-			# r_endpose = R.from_euler('XYZ', euler_angles_extrinsic_degrees, degrees=True)
-			# euler_angles_extrinsic_degrees = r_endpose.as_euler('xyz', degrees=True)
+			# euler_angles_extrinsic_degrees[0] = 0
+			adjusted_end_pose_orientation_degrees = [-90, 0, -90] # dummy value
+			adjusted_end_pose_orientation_degrees[0] = -euler_angles_extrinsic_degrees[1] - 90
+			adjusted_end_pose_orientation_degrees[1] = euler_angles_extrinsic_degrees[0]
+			adjusted_end_pose_orientation_degrees[2] = euler_angles_extrinsic_degrees[2] - 90
+			print(f"adjusted : {adjusted_end_pose_orientation_degrees}")
 
-			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), euler_angles_extrinsic_degrees)
+			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), adjusted_end_pose_orientation_degrees)
 
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
