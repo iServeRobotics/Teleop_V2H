@@ -48,7 +48,6 @@ def enable_fun(piper:C_PiperInterface):
 		exit(0)
 
 def get_pose_cmd(pos, euler_angles_degrees):
-	# offset = [-0.3, 0.5, 0.7]
 	offset = [-0.2, 0, 0.5]
 	factor = 1000
 	X = round((offset[0]+pos[0,0])*600*factor)
@@ -64,18 +63,6 @@ def get_pose_cmd(pos, euler_angles_degrees):
 	Y = min(600*factor, Y)
 	Z = max(150*factor, Z)
 	Z = min(700*factor, Z)
-
-	# RX -= 90*factor
-	# RY += 180*factor
-	# RX += 180*factor
-	# RY += 90*factor
-	# RZ -= 90*factor
-	# RX = 0
-	# RY = 180*factor
-	# RZ = 0
-	# X = 200*factor
-	# Y = 0
-	# Z = 200*factor
 
 	return X, Y, Z, RX, RY, RZ
 
@@ -143,34 +130,24 @@ async def task():
 			h_new = np.matmul(h_matrix, h_comp_matrix)
 			new_p = -np.matmul(h_new[0:3,0:3].T, h_new[0:3, 3])
 			
-			comp_euler_angles = R.from_matrix(h_new[0:3,0:3]).as_euler('xyz', degrees=True)
-			print(f"compensated euler angle: {comp_euler_angles}")
+			# comp_euler_angles = R.from_matrix(h_new[0:3,0:3]).as_euler('xyz', degrees=True)
+			# print(f"compensated euler angle: {comp_euler_angles}")
 			# compensate for the end effector heading
 			r_end = R.from_euler('z', -yaw_offset, degrees=True).as_matrix()
 			h_end_comp_matrix = np.vstack((np.hstack((np.array(r_end), np.zeros(3).reshape(3,1))), np.array([0, 0, 0, 1]).reshape(1,4)))
 			h_end = np.matmul(h_end_comp_matrix, h_matrix)
-
 			
-			euler_angles_intrinsic_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
-			#print(new_p.reshape(1,3))
-			# euler_angles_degrees[2] += yaw_offset
-			
-			# euler_angles_degrees[0] -= 90
+			euler_angles_extrinsic_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
 
-			# euler_angles_degrees[0] += 90
-			# euler_angles_degrees[0] = max(euler_angles_degrees[0], -20)
-			# euler_angles_degrees[0] = min(euler_angles_degrees[0], 20)
-			euler_angles_intrinsic_degrees[0] = 0
-			euler_angles_intrinsic_degrees[1] += 90
-			print(f"euler angle intrinsic: {euler_angles_intrinsic_degrees}")
-			r_endpose = R.from_euler('XYZ', euler_angles_intrinsic_degrees, degrees=True)
-			euler_angles_extrinsic_degrees = r_endpose.as_euler('xyz', degrees=True)
+			euler_angles_extrinsic_degrees[0] += 90
+			euler_angles_extrinsic_degrees[1] += 90
+			print(f"xyz: {new_p.reshape(1,3)} - euler angle extrinsic: {euler_angles_extrinsic_degrees}")
+			euler_angles_extrinsic_degrees[0] = 0
+			# r_endpose = R.from_euler('XYZ', euler_angles_extrinsic_degrees, degrees=True)
+			# euler_angles_extrinsic_degrees = r_endpose.as_euler('xyz', degrees=True)
 
-			# print(f"yaw_offset : {yaw_offset}, clif yaw angle: {euler_angles_intrinsic_degrees[0]}")
-			# X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), euler_angles_degrees)
-			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), euler_angles_intrinsic_degrees)
+			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), euler_angles_extrinsic_degrees)
 
-			# print(X,Y,Z,RX,RY,RZ)
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 			end_pose_msg = piper.GetArmEndPoseMsgs()
