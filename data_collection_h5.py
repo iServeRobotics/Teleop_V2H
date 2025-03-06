@@ -250,10 +250,10 @@ async def task():
 				counter = 0
 
 		except KeyboardInterrupt:
-			output_file_name = 'data_' + str(time.time()) + '_iserve.h5'
+			output_file_name = 'data_' + str(time.time()) + '_iserve.hdf5'
 			print("Process interrupted by user.") 
 			print("Data Collection Ended, saving to file...")
-			with h5py.File(output_file_name, 'w') as hf:
+			with h5py.File(output_file_name, 'w', rdcc_nbytes=1024 ** 2 * 2) as hf:
 				hf.attrs['sim'] = True
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
