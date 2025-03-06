@@ -251,6 +251,7 @@ async def task():
 			print("Process interrupted by user.") 
 			print("Data Collection Ended, saving to file...")
 			with h5py.File(output_file_name, 'w') as hf:
+				hf.attrs['sim'] = True
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
 				hf.create_dataset("action",  data=np.array(action_list))
