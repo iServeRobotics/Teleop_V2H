@@ -148,6 +148,24 @@ async def task():
 
 	while True:
 		time.sleep(base_sleep_period)
+		if len(action_list) == 500:
+			output_file_name = 'data_' + str(time.time()) + '_iserve.h5'
+			print("Process interrupted by user.") 
+			print("Data Collection Ended, saving to file...")
+			with h5py.File(output_file_name, 'w') as hf:
+				obs = hf.create_group('observations')
+				image = obs.create_group('images')
+				hf.create_dataset("action",  data=np.array(action_list))
+				image.create_dataset("cam0", data=np.array(img0_list))
+				image.create_dataset("top", data=np.array(img1_list))
+				obs.create_dataset("qpos", data=np.array(robot_state_list))
+				obs.create_dataset("qvel", data=np.array(robot_state_list))
+				obs.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
+				# for name, array in data_dict.items():
+				# 	hf[name][...] = array
+				print(f"Total {time.time() - start_time} seconds of data saved.")
+			break
+		
 		try: # Retrieve end position and posture 
 			pos, rot = await sirius.getEndPos() # 获取位置和旋转矩阵 
 			p = np.array([pos[0,0], pos[0,1], pos[0,2]]).reshape(3,1)
@@ -167,21 +185,25 @@ async def task():
 			# euler_angles_degrees[2] += yaw_offset
 			euler_angles_extrinsic_degrees = R.from_matrix(h_end[0:3,0:3]).as_euler('xyz', degrees=True)
 
-			print(f"xyz: {new_p.reshape(1,3)} - euler angle extrinsic: {euler_angles_extrinsic_degrees}")
+			# print(f"xyz: {new_p.reshape(1,3)} - euler angle extrinsic: {euler_angles_extrinsic_degrees}")
 			# euler_angles_extrinsic_degrees[0] = 0
 			adjusted_end_pose_orientation_degrees = [-90, 0, -90] # dummy value
 			adjusted_end_pose_orientation_degrees[0] = -euler_angles_extrinsic_degrees[1] - 90
 			adjusted_end_pose_orientation_degrees[1] = euler_angles_extrinsic_degrees[0] + 90
 			adjusted_end_pose_orientation_degrees[2] = euler_angles_extrinsic_degrees[2] - 90
-			print(f"adjusted : {adjusted_end_pose_orientation_degrees}")
+			# print(f"adjusted : {adjusted_end_pose_orientation_degrees}")
 
 			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), adjusted_end_pose_orientation_degrees)
-			print(X,Y,Z,RX,RY,RZ)
+			# print(X,Y,Z,RX,RY,RZ)
+			joint = piper.GetArmJointMsgs().joint_state
+			robot_cur_state = [joint.joint_1, joint.joint_2, joint.joint_3, joint.joint_4, joint.joint_5, joint.joint_6, 0, joint.joint_1, joint.joint_2, joint.joint_3, joint.joint_4, joint.joint_5, joint.joint_6, 0] # augument with 0 for the gripper
+			end_pose = piper.GetArmEndPoseMsgs().end_pose
+			print(f"robot current pose: x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
+
 
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
-			end_pose = piper.GetArmEndPoseMsgs().end_pose
-			# print(f"x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
+
 			obs_act_ts = time.time()
 			tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(adjusted_end_pose_orientation_degrees)))
 			print(f"teleop raw data: {tele_raw_data}")
@@ -215,8 +237,10 @@ async def task():
 				# data_dict[f'/observations/images/cam1'].append(frame1)
 				img0_list.append(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
 				img1_list.append(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
-				action_list.append([X,Y,Z,RX,RY,RZ])
-				robot_state_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
+				end_pose = piper.GetArmEndPoseMsgs().end_pose
+				action_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis, 0, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis, 0]) # augument with 0 for the gripper
+				robot_state_list.append(robot_cur_state)
+				# robot_state_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 
 				img_time_stamp_list.append(time.time())
 				counter = 0
@@ -228,10 +252,11 @@ async def task():
 			with h5py.File(output_file_name, 'w') as hf:
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
-				hf.create_dataset("actions",  data=np.array(action_list))
+				hf.create_dataset("action",  data=np.array(action_list))
 				image.create_dataset("cam0", data=np.array(img0_list))
-				image.create_dataset("cam1", data=np.array(img1_list))
-				obs.create_dataset("robot_state", data=np.array(robot_state_list))
+				image.create_dataset("top", data=np.array(img1_list))
+				obs.create_dataset("qpos", data=np.array(robot_state_list))
+				obs.create_dataset("qvel", data=np.array(robot_state_list))
 				obs.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
 				# for name, array in data_dict.items():
 				# 	hf[name][...] = array
