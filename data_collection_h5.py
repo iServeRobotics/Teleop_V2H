@@ -165,7 +165,7 @@ async def task():
 				# 	hf[name][...] = array
 				print(f"Total {time.time() - start_time} seconds of data saved.")
 			break
-		
+
 		try: # Retrieve end position and posture 
 			pos, rot = await sirius.getEndPos() # 获取位置和旋转矩阵 
 			p = np.array([pos[0,0], pos[0,1], pos[0,2]]).reshape(3,1)
@@ -196,7 +196,8 @@ async def task():
 			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), adjusted_end_pose_orientation_degrees)
 			# print(X,Y,Z,RX,RY,RZ)
 			joint = piper.GetArmJointMsgs().joint_state
-			robot_cur_state = [joint.joint_1, joint.joint_2, joint.joint_3, joint.joint_4, joint.joint_5, joint.joint_6, 0, joint.joint_1, joint.joint_2, joint.joint_3, joint.joint_4, joint.joint_5, joint.joint_6, 0] # augument with 0 for the gripper
+			robot_cur_state = [joint.joint_1/1e6, joint.joint_2/1e6, joint.joint_3/1e6, joint.joint_4/1e6, joint.joint_5/1e6, joint.joint_6/1e6, 0.0, joint.joint_1/1e6, joint.joint_2/1e6, joint.joint_3/1e6, joint.joint_4/1e6, joint.joint_5/1e6, joint.joint_6/1e6, 0.0] # augument with 0 for the gripper
+			print(robot_cur_state)
 			end_pose = piper.GetArmEndPoseMsgs().end_pose
 			print(f"robot current pose: x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
 
@@ -204,9 +205,8 @@ async def task():
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 
-			obs_act_ts = time.time()
-			tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(adjusted_end_pose_orientation_degrees)))
-			print(f"teleop raw data: {tele_raw_data}")
+			# obs_act_ts = time.time()
+			# tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(adjusted_end_pose_orientation_degrees)))
 
 			# action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
 			# robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
@@ -238,7 +238,8 @@ async def task():
 				img0_list.append(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
 				img1_list.append(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
 				end_pose = piper.GetArmEndPoseMsgs().end_pose
-				action_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis, 0, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis, 0]) # augument with 0 for the gripper
+				list = [end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0, end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0] # augument with 0 for the gripper
+				action_list.append(list) 
 				robot_state_list.append(robot_cur_state)
 				# robot_state_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 
