@@ -150,19 +150,20 @@ async def task():
 		time.sleep(base_sleep_period)
 		if len(action_list) == 500:
 			output_file_name = 'data_' + str(time.time()) + '_iserve.h5'
-			print("Process interrupted by user.") 
+			print("Total 500 observations collected.") 
 			print("Data Collection Ended, saving to file...")
 			with h5py.File(output_file_name, 'w') as hf:
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
-				hf.create_dataset("action",  data=np.array(action_list))
+				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("top", data=np.array(img1_list))
-				obs.create_dataset("qpos", data=np.array(robot_state_list))
-				obs.create_dataset("qvel", data=np.array(robot_state_list))
+				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
+				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
 				# for name, array in data_dict.items():
 				# 	hf[name][...] = array
+				print(f"saved action list dtype: {np.array(action_list, dtype=np.float32).dtype}, qpos dtype: {np.array(robot_state_list, dtype=np.float32).dtype}")
 				print(f"Total {time.time() - start_time} seconds of data saved.")
 			break
 
@@ -238,7 +239,9 @@ async def task():
 				img0_list.append(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
 				img1_list.append(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
 				end_pose = piper.GetArmEndPoseMsgs().end_pose
+				
 				list = [end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0, end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0] # augument with 0 for the gripper
+
 				action_list.append(list) 
 				robot_state_list.append(robot_cur_state)
 				# robot_state_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
@@ -254,14 +257,15 @@ async def task():
 				hf.attrs['sim'] = True
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
-				hf.create_dataset("action",  data=np.array(action_list))
+				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("top", data=np.array(img1_list))
-				obs.create_dataset("qpos", data=np.array(robot_state_list))
-				obs.create_dataset("qvel", data=np.array(robot_state_list))
+				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
+				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
 				# for name, array in data_dict.items():
 				# 	hf[name][...] = array
+				print(f"saved action list dtype: {np.array(action_list, dtype=np.float32).dtype}, qpos dtype: {np.array(robot_state_list, dtype=np.float32).dtype}")
 				print(f"Total {time.time() - start_time} seconds of data saved.")
 
 				# print(img_list)
