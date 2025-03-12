@@ -46,8 +46,32 @@ Make sure you have 2 USB cameras connected.
 ls /dev/video*
 ```
 
-If you saw video0 video1 video2 video3, then it means both cameras are connected. If not please double check the cameras before proceed.
-Now run the following:
+If you saw video0 video1 video2 video3, video4, video5, then it means all three cameras are connected (video0 for hand control, video2 and video4 for data collection). If not please double check the cameras before proceed.
+
+There is an known issue with the USB port, so adding additional verification as following (in python commandline):
+
+```bash
+import cv2
+
+cam0 = cv2.VideoCapture(2)
+cam1 = cv2.VideoCapture(4)
+
+while True:
+    ret0, img0 = cam0.read()
+    ret1, img1 = cam1.read()
+
+    if not ret0:
+    	print("cam 0 is not available")
+    else:
+        print(img0)
+    if not ret1:
+    	print("cam 1 is not available")
+    else:
+    	print(img1)
+
+
+```
+Now if the script above shows no error, proceed to the following:
 
 ```bash
 python data_collection_h5.py
