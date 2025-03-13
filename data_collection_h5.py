@@ -14,6 +14,14 @@ import time
 import math
 from piper_sdk import *
 
+
+# assume two cameras in use
+cam1_index = 2
+cam2_index = 4
+
+cam1_save_name = 'cam1'
+cam2_save_name = 'cam2'
+
 def enable_fun(piper:C_PiperInterface):
 	'''
 	使能机械臂并检测使能状态,尝试5s,如果使能超时则退出程序
@@ -50,7 +58,7 @@ def enable_fun(piper:C_PiperInterface):
 		exit(0)
 
 def get_pose_cmd(pos, euler_angles_degrees):
-	offset = [-0.2, 0, 0.5]
+	offset = [-0.3, 0, 0.6]
 	factor = 1000
 	X = round((offset[0]+pos[0,0])*600*factor)
 	Y = round((offset[1]+pos[0,1])*600*factor)
@@ -69,7 +77,7 @@ def get_pose_cmd(pos, euler_angles_degrees):
 	return X, Y, Z, RX, RY, RZ
 
 async def task():
-	piper = C_PiperInterface("can0")
+	piper = C_PiperInterface("can2")
 	piper.ConnectPort()
 	piper.EnableArm(7)
 	enable_fun(piper=piper)
@@ -92,7 +100,7 @@ async def task():
 	piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 	time.sleep(2.0)
 
-	MPUReader = AsyncCeptionController("/dev/ttyUSB0") # this is the port for IMU teleoperation
+	MPUReader = AsyncCeptionController("/dev/ttyUSB1") # this is the port for IMU teleoperation
 	print("connecting ...")
 	await MPUReader.connect()
 	print("connected.")
@@ -123,22 +131,24 @@ async def task():
 	h_comp_matrix = np.vstack((np.hstack((np.array(r_matrix), np.zeros(3).reshape(3,1))), np.array([0, 0, 0, 1]).reshape(1,4)))
 	print(h_comp_matrix)
 
-	action_list = []    # teleop pose
+	action_list = []     # robot_state[1:] - robot_state[:-1]
+	teleop_endpose = []  # teleop pose
 	robot_state_list = []  # robot end pose
 	img0_list = []
 	img1_list = []
 	img_time_stamp_list = []
 
 	camera_names = {'cam0', 'cam1'}
-	cam0 = cv2.VideoCapture(0)
-	cam1 = cv2.VideoCapture(2)
-	data_dict = {
-		'/observations/qpos': [],
-		'/observations/qvel': [],
-		'/action': [],
-	}
-	for cam_name in camera_names:
-		data_dict[f'/observations/images/{cam_name}'] = []
+	cam0 = cv2.VideoCapture(cam1_index)
+	cam1 = cv2.VideoCapture(cam2_index)
+
+	# data_dict = {
+	# 	'/observations/qpos': [],
+	# 	'/observations/qvel': [],
+	# 	'/action': [],
+	# }
+	# for cam_name in camera_names:
+	# 	data_dict[f'/observations/images/{cam_name}'] = []
 
 	base_sleep_period = 0.01 # 100Hz
 	camera_tic_factor = 3 # 30 times base sleep period, ~ 30Hz
@@ -148,18 +158,24 @@ async def task():
 
 	while True:
 		time.sleep(base_sleep_period)
-		if len(action_list) == 500:
+		# stop and save with fixed trajectory length
+		if len(action_list) == 200:
 			output_file_name = 'data_' + str(time.time()) + '_iserve.h5'
-			print("Total 500 observations collected.") 
+			print(f"Total {len(action_list)} observations collected.") 
 			print("Data Collection Ended, saving to file...")
 			with h5py.File(output_file_name, 'w') as hf:
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
+				#action_list = np.hstack((action_list[1:] - action_list[:-1], 0))
+				for i in range(len(action_list)-1):
+					action_list[i] = [x-y for x,y in zip(action_list[i+1], action_list[i])]
+				action_list[len(action_list)-1] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("top", data=np.array(img1_list))
 				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
+				obs.create_dataset("teleop_pose", data=np.array(teleop_endpose, dtype=np.float32))
 				obs.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
 				# for name, array in data_dict.items():
 				# 	hf[name][...] = array
@@ -197,9 +213,10 @@ async def task():
 			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), adjusted_end_pose_orientation_degrees)
 			# print(X,Y,Z,RX,RY,RZ)
 			joint = piper.GetArmJointMsgs().joint_state
-			robot_cur_state = [joint.joint_1/1e6, joint.joint_2/1e6, joint.joint_3/1e6, joint.joint_4/1e6, joint.joint_5/1e6, joint.joint_6/1e6, 0.0, joint.joint_1/1e6, joint.joint_2/1e6, joint.joint_3/1e6, joint.joint_4/1e6, joint.joint_5/1e6, joint.joint_6/1e6, 0.0] # augument with 0 for the gripper
-			print(robot_cur_state)
 			end_pose = piper.GetArmEndPoseMsgs().end_pose
+			# robot_cur_state :  joint, 0, end_pose, 0
+			robot_cur_state = [joint.joint_1/1e6, joint.joint_2/1e6, joint.joint_3/1e6, joint.joint_4/1e6, joint.joint_5/1e6, joint.joint_6/1e6, 0.0, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis, 0.0] # augument with 0 for the gripper
+			
 			print(f"robot current pose: x: {end_pose.X_axis}, y: {end_pose.Y_axis}, z: {end_pose.Z_axis}, rx: {end_pose.RX_axis}, ry: {end_pose.RY_axis}, rz: {end_pose.RZ_axis}")
 
 
@@ -240,10 +257,11 @@ async def task():
 				img1_list.append(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
 				end_pose = piper.GetArmEndPoseMsgs().end_pose
 				
-				list = [end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0, end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0] # augument with 0 for the gripper
+				action = [end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0, end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0] # augument with 0 for the gripper
 
-				action_list.append(list) 
+				action_list.append(robot_cur_state) 
 				robot_state_list.append(robot_cur_state)
+				teleop_endpose.append(np.array([X,Y,Z,RX,RY,RZ]))
 				# robot_state_list.append([end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
 
 				img_time_stamp_list.append(time.time())
@@ -257,11 +275,15 @@ async def task():
 				hf.attrs['sim'] = True
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
+				for i in range(len(action_list)-1):
+					action_list[i,:] = action_list[i+1,:] - action_list[i,:]
+				action_list[len(action_list)-1] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("top", data=np.array(img1_list))
 				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
+				obs.create_dataset("teleop_pose", data=np.array(teleop_endpose, dtype=np.float32))
 				obs.create_dataset("observations_ts", data=np.array(img_time_stamp_list))
 				# for name, array in data_dict.items():
 				# 	hf[name][...] = array
