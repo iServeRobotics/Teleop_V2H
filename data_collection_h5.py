@@ -144,7 +144,7 @@ async def task():
 	# camera_names = {'cam0', 'cam1', 'cam2'}
 	cam0 = cv2.VideoCapture(cam1_index)
 	cam1 = cv2.VideoCapture(cam2_index)
-	cam2 = cv2.VideoCapture(cam3_index)
+	#cam2 = cv2.VideoCapture(cam3_index)
 
 
 	base_sleep_period = 0.01 # 100Hz
@@ -169,7 +169,7 @@ async def task():
 				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("cam1", data=np.array(img1_list))
-				image.create_dataset("cam2", data=np.array(img2_list))
+				#image.create_dataset("cam2", data=np.array(img2_list))
 				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("teleop_pose", data=np.array(teleop_endpose, dtype=np.float32))
@@ -224,14 +224,14 @@ async def task():
 				# get an camera image
 				ret0, frame0 = cam0.read()
 				ret1, frame1 = cam1.read()
-				ret2, frame2 = cam2.read()
+				#ret2, frame2 = cam2.read()
 				if not ret0 or not ret1:
 					print("no image...")
 
 
 				img0_list.append(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
 				img1_list.append(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
-				img2_list.append(cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB))
+				#img2_list.append(cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB))
 				end_pose = piper.GetArmEndPoseMsgs().end_pose
 				
 				action = [end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0, end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0] # augument with 0 for the gripper
@@ -258,7 +258,7 @@ async def task():
 				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
 				image.create_dataset("cam1", data=np.array(img1_list))
-				image.create_dataset("cam2", data=np.array(img2_list))
+				# image.create_dataset("cam2", data=np.array(img2_list))
 				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("teleop_pose", data=np.array(teleop_endpose, dtype=np.float32))
