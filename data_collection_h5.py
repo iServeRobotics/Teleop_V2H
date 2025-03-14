@@ -18,9 +18,11 @@ from piper_sdk import *
 # assume two cameras in use
 cam1_index = 2
 cam2_index = 4
+cam3_index = 0
 
 cam1_save_name = 'cam1'
 cam2_save_name = 'cam2'
+cam3_save_name = 'cam3'
 
 def enable_fun(piper:C_PiperInterface):
 	'''
@@ -136,19 +138,14 @@ async def task():
 	robot_state_list = []  # robot end pose
 	img0_list = []
 	img1_list = []
+	img2_list = []
 	img_time_stamp_list = []
 
-	camera_names = {'cam0', 'cam1'}
+	# camera_names = {'cam0', 'cam1', 'cam2'}
 	cam0 = cv2.VideoCapture(cam1_index)
 	cam1 = cv2.VideoCapture(cam2_index)
+	cam2 = cv2.VideoCapture(cam3_index)
 
-	# data_dict = {
-	# 	'/observations/qpos': [],
-	# 	'/observations/qvel': [],
-	# 	'/action': [],
-	# }
-	# for cam_name in camera_names:
-	# 	data_dict[f'/observations/images/{cam_name}'] = []
 
 	base_sleep_period = 0.01 # 100Hz
 	camera_tic_factor = 3 # 30 times base sleep period, ~ 30Hz
@@ -166,13 +163,13 @@ async def task():
 			with h5py.File(output_file_name, 'w') as hf:
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
-				#action_list = np.hstack((action_list[1:] - action_list[:-1], 0))
 				for i in range(len(action_list)-1):
 					action_list[i] = [x-y for x,y in zip(action_list[i+1], action_list[i])]
 				action_list[len(action_list)-1] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
-				image.create_dataset("top", data=np.array(img1_list))
+				image.create_dataset("cam1", data=np.array(img1_list))
+				image.create_dataset("cam2", data=np.array(img2_list))
 				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("teleop_pose", data=np.array(teleop_endpose, dtype=np.float32))
@@ -208,7 +205,6 @@ async def task():
 			adjusted_end_pose_orientation_degrees[0] = -euler_angles_extrinsic_degrees[1] - 90
 			adjusted_end_pose_orientation_degrees[1] = euler_angles_extrinsic_degrees[0] + 90
 			adjusted_end_pose_orientation_degrees[2] = euler_angles_extrinsic_degrees[2] - 90
-			# print(f"adjusted : {adjusted_end_pose_orientation_degrees}")
 
 			X,Y,Z,RX,RY,RZ = get_pose_cmd(new_p.reshape(1,3), adjusted_end_pose_orientation_degrees)
 			# print(X,Y,Z,RX,RY,RZ)
@@ -223,38 +219,19 @@ async def task():
 			piper.MotionCtrl_2(0x01, 0x00, 100, 0x00)
 			piper.EndPoseCtrl(X,Y,Z,RX,RY,RZ)
 
-			# obs_act_ts = time.time()
-			# tele_raw_data = np.concatenate((np.array(new_p).flatten(), np.array(adjusted_end_pose_orientation_degrees)))
-
-			# action_list.append([obs_act_ts, X,Y,Z,RX,RY,RZ])
-			# robot_state_list.append([obs_act_ts, end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis])
-			# action = [end_pose.X_axis, end_pose.Y_axis, end_pose.Z_axis, end_pose.RX_axis, end_pose.RY_axis, end_pose.RZ_axis]
-			# data_dict['/observations/qpos'].append()
-			# data_dict['/observations/qvel'].append()
-			# data_dict['/action'].append(action)
-			# for cam_name in camera_names:
-				# data_dict[f'/observations/images/{cam_name}'].append(ts.observation['images'][cam_name])
-
 			counter += 1
 			if counter == camera_tic_factor:
 				# get an camera image
 				ret0, frame0 = cam0.read()
 				ret1, frame1 = cam1.read()
+				ret2, frame2 = cam2.read()
 				if not ret0 or not ret1:
 					print("no image...")
 
-				# if ret0:
-				# 	cv2.imshow('Camera 0', frame0)
-				# if ret1:
-				# 	cv2.imshow('Camera 1', frame1)
 
-				# # Break the loop if 'q' is pressed
-				# if cv2.waitKey(1) & 0xFF == ord('q'):
-				# 	break
-				# data_dict[f'/observations/images/cam0'].append(frame0)
-				# data_dict[f'/observations/images/cam1'].append(frame1)
 				img0_list.append(cv2.cvtColor(frame0, cv2.COLOR_BGR2RGB))
 				img1_list.append(cv2.cvtColor(frame1, cv2.COLOR_BGR2RGB))
+				img2_list.append(cv2.cvtColor(frame2, cv2.COLOR_BGR2RGB))
 				end_pose = piper.GetArmEndPoseMsgs().end_pose
 				
 				action = [end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0, end_pose.X_axis/1e6, end_pose.Y_axis/1e6, end_pose.Z_axis/1e6, end_pose.RX_axis/1e6, end_pose.RY_axis/1e6, end_pose.RZ_axis/1e6, 0.0] # augument with 0 for the gripper
@@ -276,11 +253,12 @@ async def task():
 				obs = hf.create_group('observations')
 				image = obs.create_group('images')
 				for i in range(len(action_list)-1):
-					action_list[i,:] = action_list[i+1,:] - action_list[i,:]
+					action_list[i] = [x-y for x,y in zip(action_list[i+1], action_list[i])]
 				action_list[len(action_list)-1] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 				hf.create_dataset("action",  data=np.array(action_list, dtype=np.float32))
 				image.create_dataset("cam0", data=np.array(img0_list))
-				image.create_dataset("top", data=np.array(img1_list))
+				image.create_dataset("cam1", data=np.array(img1_list))
+				image.create_dataset("cam2", data=np.array(img2_list))
 				obs.create_dataset("qpos", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("qvel", data=np.array(robot_state_list, dtype=np.float32))
 				obs.create_dataset("teleop_pose", data=np.array(teleop_endpose, dtype=np.float32))
