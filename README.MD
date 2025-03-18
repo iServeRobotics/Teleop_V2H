@@ -79,4 +79,12 @@ python data_collection_h5.py
 And go through the same calibration steps in teleoperation, the data recording is automatically started after the calibration. Currently the data collection is set to record 500 observations (aobut a minute of data, 900+ MB) and will save a file with data_ as prefix and the current time (ROS time typed) with .hdf5 extension to the current path. Feel free to run the script as many times as you want, just be aware of the storage limitations.
 
 
+
+### How to setup the cameras
+
+Please refer to the following as an example of how to place the cameras for hand control, and how to place the object for grasping. Feel free to adjust the other cameras.
+
+![plot](./Setup_demo.jpg)
+
+
 ### this is only a demo prototype and lots of stuff is WIP.
