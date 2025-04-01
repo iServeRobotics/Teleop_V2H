@@ -164,21 +164,12 @@ def enable_fun(piper:C_PiperInterface):
         exit(0)
 
 def get_pose_cmd(pos, euler_angles_degrees):
-    offset = [-0.3, 0, 0.6]
-    factor = 1000
-    X = round((offset[0]+pos[0])*600*factor)
-    Y = round((offset[1]+pos[1])*600*factor)
-    Z = round((offset[2]+pos[2])*600*factor)
-    RX = round(euler_angles_degrees[0]*factor)
-    RY = round(euler_angles_degrees[1]*factor)
-    RZ = round(euler_angles_degrees[2]*factor)
-
-    X = max(100*factor, X)
-    X = min(700*factor, X)
-    Y = max(-500*factor, Y)
-    Y = min(500*factor, Y)
-    Z = max(150*factor, Z)
-    Z = min(700*factor, Z)
+    X = int(pos[0])
+    Y = int(pos[1])
+    Z = int(pos[2])
+    RX = int(euler_angles_degrees[0])
+    RY = int(euler_angles_degrees[1])
+    RZ = int(euler_angles_degrees[2])
 
     return X, Y, Z, RX, RY, RZ
 
